@@ -1,27 +1,26 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 MASTER_IP       = "192.168.0.50"
-NODE_01_IP      = "192.168.0.51"
-NODE_02_IP      = "192.168.0.52"
-RANCHER_IP      = "192.168.0.53"
+NODE_IP         = "192.168.0.51"
+RANCHER_IP      = "192.168.0.52"
 
 # All Vagrant configuration is done below. The "2" in Vagrant.configure
 # configures the configuration version (we support older styles for
 # backwards compatibility). Please don't change it unless you know what
 # you're doing.
 Vagrant.configure("2") do |config|
-  config.vm.box = "ubuntu/focal64"
+  #config.vm.box = "ubuntu/focal64"
 
   boxes = [
-    { :name => "master",  :ip => MASTER_IP,  :cpus => 2, :memory => 4096 },
-    { :name => "workernode-01", :ip => NODE_01_IP, :cpus => 2, :memory => 4096 },
-    { :name => "workernode-02", :ip => NODE_02_IP, :cpus => 2, :memory => 4096 },
-    { :name => "rancher", :ip => RANCHER_IP, :cpus => 2, :memory => 4096 },
+    { :name => "master",  :ip => MASTER_IP,  :cpus => 2, :memory => 4096, :box => "ubuntu/focal64" },
+    { :name => "workernode", :ip => NODE_IP, :cpus => 2, :memory => 4096, :box => "bflance/ubuntu-20.10-desktop" },
+    { :name => "rancher", :ip => RANCHER_IP, :cpus => 2, :memory => 4096, :box => "aspyatkin/ubuntu-20.04-server" },
   ]
 
   boxes.each do |opts|
     config.vm.define opts[:name] do |box|
       box.vm.hostname = opts[:name]
+      box.vm.box = opts[:box]
       box.vm.network :public_network, ip: opts[:ip]
  
       box.vm.provider "virtualbox" do |vb|
@@ -33,15 +32,13 @@ Vagrant.configure("2") do |config|
         box.vm.provision "shell", path:"./install-kubernetes-dependencies.sh"
         box.vm.provision "shell", path:"./configure-master-node.sh"
         end
-      if box.vm.hostname == "workernode-01" then ##TODO: create some regex to match worker hostnames
+      if box.vm.hostname == "workernode" then ##TODO: create some regex to match worker hostnames
+        box.disksize.size = "60GB"
         box.vm.provision "shell", path:"./install-kubernetes-dependencies.sh"
         box.vm.provision "shell", path:"./configure-worker-nodes.sh"
       end
-      if box.vm.hostname == "workernode-02" then ##TODO: create some regex to match worker hostnames
-        box.vm.provision "shell", path:"./install-kubernetes-dependencies.sh"
-        box.vm.provision "shell", path:"./configure-worker-nodes.sh"
-      end
-      if box.vm.hostname == "rancher" then ##TODO: create some regex to match worker hostnames
+      if box.vm.hostname == "rancher" then ##TODO: create some regex to match rancher hostnames
+        box.disksize.size = "35GB"
         box.vm.provision "shell", path:"./install-rancher-dependencies.sh"
         box.vm.provision "shell", path:"./rancher-setup.sh"
       end
